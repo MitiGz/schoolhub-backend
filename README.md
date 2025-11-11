@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
 # SchoolHub - Backend 🚀
 
 Este repositorio contiene el backend del proyecto **SchoolHub**, un panel de gestión integral para colegios (usuarios, cursos, materias, inscripciones, actividades y entregas) con Prisma + PostgreSQL.
@@ -33,8 +37,7 @@ Asegúrate de tener instalado lo siguiente:
 
 1.  **Clonar el repositorio**
     ```bash
-    git clone [https://github.com/TU_USUARIO/schoolhub-backend.git](https://github.com/TU_USUARIO/schoolhub-backend.git)
-    cd schoolhub-backend
+    git clone [https://github.com/MitiGz/schoolhub-backend.git](https://github.com/MitiGz/schoolhub-backend.git)
     ```
 
 2.  **Instalar dependencias**
@@ -48,28 +51,24 @@ Asegúrate de tener instalado lo siguiente:
     cp .env.example .env
     ```
     Ahora, edita el archivo `.env` con la URL de conexión a tu base de datos PostgreSQL.
-    > **Ejemplo:**
-    > `DATABASE_URL="postgresql://tu_usuario:tu_password@localhost:5432/schoolhub"`
 
-4.  **Levantar la base de datos (Recomendado: con Docker)**
-    El proyecto incluye un `docker-compose.yml` para levantar la base de datos fácilmente.
+4.  **Levantar la base de datos**
     ```bash
     docker-compose up -d
     ```
-    *Si prefieres usar una instancia local de PostgreSQL, asegúrate de que esté corriendo y que la base de datos (`schoolhub` en el ejemplo) exista.*
 
 5.  **Correr las migraciones de Prisma**
     Asegúrate de que tu base de datos esté corriendo y sea accesible. Luego, ejecuta:
     ```bash
     npx prisma migrate dev
     ```
-    Esto creará todas las tablas en tu base de datos basándose en el esquema de Prisma.
 
 ---
 
-## 🏃‍♂️ Corriendo la Aplicación
+## Corriendo la Aplicación
 
-Para iniciar la aplicación en modo de desarrollo (con hot-reload):
+Para iniciar la aplicación en modo de desarrollo:
 
 ```bash
 npm run start:dev
+
