@@ -1,0 +1,188 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../src/generated/client"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role      @default(STUDENT)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // --- Relación de Alumno ---
+  // Un alumno tiene MUCHAS inscripciones
+  enrollments Enrollment[] @relation("StudentEnrollments")
+
+  // --- Relación de Profesor ---
+  teachingAssignments TeachingAssignment[] @relation("TeacherAssignments")
+
+  // --- Relaciones para Calificaciones (ver más abajo) ---
+  submissions Submission[] @relation("StudentSubmissions")
+  gradesGiven Grade[]      @relation("TeacherGrades")
+
+  @@index([deletedAt])
+  @@map("users") // Le dice a Prisma que la tabla en Postgres se llame "users"
+}
+
+model Course {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  level     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Un curso tiene MUCHAS materias
+  subjects Subject[]
+
+  @@map("courses")
+}
+
+model Subject {
+  id        String    @id @default(cuid())
+  name      String    
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+
+  // Un materia tiene MUCHAS asignaciones de profesores (ej: 2 profesores para la misma materia)
+  teachingAssignments TeachingAssignment[]
+
+  // Una materia tiene MUCHAS inscripciones de alumnos
+  enrollments Enrollment[] @relation("SubjectEnrollments")
+
+  // Una materia tiene MUCHAS actividades (ver más abajo)
+  activities Activity[]
+
+  @@unique([name, courseId])
+  @@map("subjects")
+}
+
+//Esta es la tabla que unifica al Profesor con la Materia.
+model TeachingAssignment {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // --- Claves Foráneas ---
+  teacherId String
+  subjectId String
+
+  // --- Relaciones ---
+  // La asignación pertenece a UN profesor
+  teacher User    @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  // La asignación pertenece a UNA materia
+  subject Subject @relation(fields: [subjectId], references: [id])
+  // Un profesor en una materia crea MUCHAS actividades
+  activities Activity[]
+
+  // Un profesor solo puede estar asignado una vez a la misma materia
+  @@unique([teacherId, subjectId])
+  @@map("teaching_assignments")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  // --- Relaciones ---
+  studentId String
+  student   User     @relation("StudentEnrollments", fields: [studentId], references: [id])
+  
+  subjectId String
+  subject   Subject  @relation("SubjectEnrollments", fields: [subjectId], references: [id])
+  
+  // Un alumno solo puede inscribirse una vez en la misma materia
+  @@unique([studentId, subjectId])
+  @@map("enrollments")
+}
+
+// NUEVO MODELO: Tareas, exámenes, trabajos prácticos.
+model Activity {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime? // Fecha límite de entrega
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // --- Relaciones ---
+  // La actividad pertenece a UNA materia
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  
+  // La actividad fue creada por UN profesor (a través de su asignación)
+  // Esto es opcional, pero útil. Podrías linkearlo a subjectId directamente
+  // Pero linkearlo a la asignación te dice QUÉ profesor de esa materia la creó
+  authorAssignmentId String
+  authorAssignment   TeachingAssignment @relation(fields: [authorAssignmentId], references: [id])
+  
+  // Una actividad tiene MUCHAS entregas de alumnos
+  submissions Submission[]
+  
+  @@map("activities")
+}
+
+model Submission {
+  id          String    @id @default(cuid())
+  submittedAt DateTime  @default(now())
+  content     String?   @db.Text // Para respuestas de texto
+  fileUrl     String?   // Para archivos subidos
+  deletedAt   DateTime?
+  
+  // --- Relaciones ---
+  // La entrega es para UNA actividad
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id])
+  
+  // La entrega pertenece a UN alumno
+  studentId String
+  student   User     @relation("StudentSubmissions", fields: [studentId], references: [id])
+  
+  // Una entrega tiene UNA calificación
+  grade     Grade?
+  
+  // Un alumno solo puede entregar una vez por actividad
+  @@unique([activityId, studentId])
+  @@map("submissions")
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  score     Float    // O String si usas "Aprobado", "B+", etc.
+  feedback  String?  @db.Text // Devolución del profesor
+  gradedAt  DateTime @default(now())
+
+  // --- Relaciones ---
+  // La nota es para UNA entrega (relación 1-a-1)
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  
+  // La nota fue puesta por UN profesor
+  teacherId String
+  teacher   User     @relation("TeacherGrades", fields: [teacherId], references: [id])
+  
+  @@map("grades")
+}
